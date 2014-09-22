@@ -1,4 +1,5 @@
 <?php
+namespace Subugoe\NkwSitemap\Controller;
 
 /* * *************************************************************
  *  Copyright notice
@@ -22,41 +23,50 @@
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  * ************************************************************* */
-require_once(t3lib_extMgm::extPath('nkwlib') . 'class.tx_nkwlib.php');
-require_once(PATH_tslib . 'class.tslib_pibase.php');
+require_once(\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('nkwlib') . 'class.tx_nkwlib.php');
 
 /**
  * Plugin 'Custom Sitemap' for the 'nkwsitemap' extension.
- *
- * @author	Nils K. Windisch <windisch@sub.uni-goettingen.de>
- * @package	TYPO3
- * @subpackage	tx_nkwsitemap
  */
-class tx_nkwsitemap_pi1 extends tslib_pibase {
+class SitemapController extends \TYPO3\CMS\Frontend\Plugin\AbstractPlugin {
 
-	var $prefixId = 'tx_nkwsitemap_pi1';
-	var $scriptRelPath = 'pi1/class.tx_nkwsitemap_pi1.php';
-	var $extKey = 'nkwsitemap';
-	var $pi_checkCHash = true;
+	public $prefixId = 'SitemapController';
+	public $scriptRelPath = 'Classes/Controller/SitemapController.php';
+	public $extKey = 'nkwsitemap';
+	public $pi_checkCHash = TRUE;
+
+	/**
+	 * The main method of the PlugIn
+	 *
+	 * @param string $content The PlugIn content
+	 * @param array $conf The PlugIn configuration
+	 * @return string The content that is displayed on the website
+	 */
+	public function main($content, $conf) {
+		$this->conf = $conf;
+		$this->pi_setPiVarDefaults();
+		$content = $this->displayTree(\tx_nkwlib::getPageTreeIds($this->cObj->data['pages']), $GLOBALS['TSFE']->sys_page->sys_language_uid);
+		return $this->pi_wrapInBaseClass($content);
+	}
 
 	/**
 	 * Displays the tree for the sitemap
-	 * 
+	 *
 	 * @param string $tree
 	 * @param int $lang
-	 * @return string 
+	 * @return string
 	 */
-	function displayTree($tree, $lang) {
-		$displayTree .= '<ul>';
+	protected function displayTree($tree, $lang) {
+		$displayTree = '<ul>';
 		foreach ($tree as $key => $value) {
-			$title = tx_nkwlib::getPageTitle($key, $lang);
+			$title = \tx_nkwlib::getPageTitle($key, $lang);
 			$displayTree .= '<li>';
-				// url title hacks
+			// url title hacks
 			$saveATagParams = $GLOBALS['TSFE']->ATagParams;
 			$GLOBALS['TSFE']->ATagParams = 'title="' . $title . '"';
 			$displayTree .= $this->pi_LinkToPage($title, $key, '', '');
 			$GLOBALS['TSFE']->ATagParams = $saveATagParams;
-			
+
 			if ($value['children']) {
 				$displayTree .= $this->displayTree($value['children'], $lang);
 			}
@@ -65,24 +75,4 @@ class tx_nkwsitemap_pi1 extends tslib_pibase {
 		$displayTree .= '</ul>';
 		return $displayTree;
 	}
-
-	/**
-	 * The main method of the PlugIn
-	 *
-	 * @param string $content The PlugIn content
-	 * @param array $conf The PlugIn configuration
-	 * @return The content that is displayed on the website
-	 */
-	function main($content, $conf) {
-		$this->conf = $conf;
-		$this->pi_setPiVarDefaults();
-		$content .= $this->displayTree(tx_nkwlib::getPageTreeIds($this->cObj->data['pages']), tx_nkwlib::getLanguage());
-		return $this->pi_wrapInBaseClass($content);
-	}
-
 }
-
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/' . $extKey . '/pi1/class.tx_nkwsitemap_pi1.php']) {
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/' . $extKey . '/pi1/class.tx_nkwsitemap_pi1.php']);
-}
-?>
