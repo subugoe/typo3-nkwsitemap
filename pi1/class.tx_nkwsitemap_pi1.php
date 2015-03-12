@@ -22,62 +22,104 @@
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  * ************************************************************* */
-require_once(t3lib_extMgm::extPath('nkwlib') . 'class.tx_nkwlib.php');
-require_once(PATH_tslib . 'class.tslib_pibase.php');
 
 /**
  * Plugin 'Custom Sitemap' for the 'nkwsitemap' extension.
- *
- * @author	Nils K. Windisch <windisch@sub.uni-goettingen.de>
- * @package	TYPO3
- * @subpackage	tx_nkwsitemap
  */
-class tx_nkwsitemap_pi1 extends tslib_pibase {
+class tx_nkwsitemap_pi1 extends \TYPO3\CMS\Frontend\Plugin\AbstractPlugin {
 
-	var $prefixId = 'tx_nkwsitemap_pi1';
-	var $scriptRelPath = 'pi1/class.tx_nkwsitemap_pi1.php';
-	var $extKey = 'nkwsitemap';
-	var $pi_checkCHash = true;
+	public $prefixId = 'tx_nkwsitemap_pi1';
+	public $scriptRelPath = 'pi1/class.tx_nkwsitemap_pi1.php';
+	public $extKey = 'nkwsitemap';
+	public $pi_checkCHash = TRUE;
 
 	/**
-	 * Displays the tree for the sitemap
-	 * 
-	 * @param string $tree
-	 * @param int $lang
-	 * @return string 
+	 * @var \TYPO3\CMS\Frontend\Page\PageRepository
 	 */
-	function displayTree($tree, $lang) {
-		$displayTree .= '<ul>';
-		foreach ($tree as $key => $value) {
-			$title = tx_nkwlib::getPageTitle($key, $lang);
-			$displayTree .= '<li>';
-				// url title hacks
-			$saveATagParams = $GLOBALS['TSFE']->ATagParams;
-			$GLOBALS['TSFE']->ATagParams = 'title="' . $title . '"';
-			$displayTree .= $this->pi_LinkToPage($title, $key, '', '');
-			$GLOBALS['TSFE']->ATagParams = $saveATagParams;
-			
-			if ($value['children']) {
-				$displayTree .= $this->displayTree($value['children'], $lang);
-			}
-			$displayTree .= '</li>';
-		}
-		$displayTree .= '</ul>';
-		return $displayTree;
-	}
+	protected $pageRepository;
+
+	/**
+	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
+	 */
+	protected $db;
 
 	/**
 	 * The main method of the PlugIn
 	 *
 	 * @param string $content The PlugIn content
 	 * @param array $conf The PlugIn configuration
-	 * @return The content that is displayed on the website
+	 * @return string The content that is displayed on the website
 	 */
-	function main($content, $conf) {
+	public function main($content, $conf) {
 		$this->conf = $conf;
+
+		$this->pageRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Frontend\Page\PageRepository::class);
+		$this->db = $GLOBALS['TYPO3_DB'];
+
 		$this->pi_setPiVarDefaults();
-		$content .= $this->displayTree(tx_nkwlib::getPageTreeIds($this->cObj->data['pages']), tx_nkwlib::getLanguage());
+		$content .= $this->displayTree($this->getPageTreeIds($this->cObj->data['pages']));
 		return $this->pi_wrapInBaseClass($content);
+	}
+
+	/**
+	 * Get the IDds of a pagetree as Array
+	 *
+	 * @param int $startId
+	 * @return array
+	 */
+	protected function getPageTreeIds($startId) {
+
+		$tree = array();
+
+		$res1 = $this->db->exec_SELECTquery(
+				'uid',
+				'pages',
+				'pid = ' . $startId . ' AND deleted = 0 AND hidden = 0 AND pid > 0 AND t3ver_wsid = 0',
+				'',
+				'sorting ASC',
+				'');
+		while ($row1 = $this->db->sql_fetch_assoc($res1)) {
+			$children = $this->getPageTreeIds($row1['uid']);
+			if ($children) {
+				$tree[$row1['uid']]['children'] = $this->getPageTreeIds($row1['uid']);
+			} else {
+				$tree[$row1['uid']]['children'] = 0;
+			}
+		}
+		return $tree;
+	}
+
+	/**
+	 * Displays the tree for the sitemap
+	 *
+	 * @param array $tree
+	 * @return string
+	 */
+	protected function displayTree($tree) {
+		$displayTree = '<ul>';
+		foreach ($tree as $uid => $value) {
+
+			$page = $this->pageRepository->getPage($uid);
+
+			if ($GLOBALS['TSFE']->sys_language_uid !== 0) {
+				$page = $this->pageRepository->getPageOverlay($page, $GLOBALS['TSFE']->sys_language_uid);
+			}
+
+			$title = $page['title'];
+			$displayTree .= '<li>';
+			// url title hacks
+			$saveATagParams = $GLOBALS['TSFE']->ATagParams;
+			$GLOBALS['TSFE']->ATagParams = 'title="' . $title . '"';
+			$displayTree .= $this->pi_LinkToPage($title, $uid, '', '');
+			$GLOBALS['TSFE']->ATagParams = $saveATagParams;
+
+			if ($value['children']) {
+				$displayTree .= $this->displayTree($value['children']);
+			}
+			$displayTree .= '</li>';
+		}
+		$displayTree .= '</ul>';
+		return $displayTree;
 	}
 
 }
