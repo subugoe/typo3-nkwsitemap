@@ -1,9 +1,0 @@
-2011-07-06 Ingo Pfennigstorf <pfennigstorf@sub.uni-goettingen.de>
-	* [Bugfix] Anzeige der Sitemap Aufrufe der nkwlib (WWW-685)
-
-2011-06-20 Ingo Pfennigstorf <pfennigstorf@sub.uni-goettingen.de>
-	* Statische Aufrufe von nkwlib implementiert
-
-2010-09-09 - 0.0.9 - Nils K. Windisch <windisch@sub.uni-goettingen.de>
-	* bug fix in ext_emconf.php
-	* added file ChangeLog
