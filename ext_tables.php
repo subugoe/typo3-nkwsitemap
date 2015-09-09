@@ -22,15 +22,17 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 if (!defined('TYPO3_MODE')) {
-	die ('Access denied.');
+    die ('Access denied.');
 }
+
 $TCA['tt_content']['types']['list']['subtypes_excludelist'][$_EXTKEY . '_pi1'] = 'layout,select_key';
+
 // add plugin
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPlugin(
-		array(
-				'LLL:EXT:nkwsitemap/locallang_db.xml:tt_content.list_type_pi1',
-				$_EXTKEY . '_pi1',
-				\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extRelPath($_EXTKEY) . 'ext_icon.gif'
-		),
-		'list_type'
+    [
+        'LLL:EXT:nkwsitemap/locallang_db.xml:tt_content.list_type_pi1',
+        $_EXTKEY . '_pi1',
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extRelPath($_EXTKEY) . 'ext_icon.gif'
+    ],
+    'list_type'
 );

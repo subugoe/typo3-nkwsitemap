@@ -26,104 +26,114 @@
 /**
  * Plugin 'Custom Sitemap' for the 'nkwsitemap' extension.
  */
-class tx_nkwsitemap_pi1 extends \TYPO3\CMS\Frontend\Plugin\AbstractPlugin {
+class tx_nkwsitemap_pi1 extends \TYPO3\CMS\Frontend\Plugin\AbstractPlugin
+{
 
-	public $prefixId = 'tx_nkwsitemap_pi1';
-	public $scriptRelPath = 'pi1/class.tx_nkwsitemap_pi1.php';
-	public $extKey = 'nkwsitemap';
-	public $pi_checkCHash = TRUE;
+    public $prefixId = 'tx_nkwsitemap_pi1';
+    public $scriptRelPath = 'pi1/class.tx_nkwsitemap_pi1.php';
+    public $extKey = 'nkwsitemap';
+    public $pi_checkCHash = TRUE;
 
-	/**
-	 * @var \TYPO3\CMS\Frontend\Page\PageRepository
-	 */
-	protected $pageRepository;
+    /**
+     * @var \TYPO3\CMS\Frontend\Page\PageRepository
+     */
+    protected $pageRepository;
 
-	/**
-	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
-	 */
-	protected $db;
+    /**
+     * @var \TYPO3\CMS\Core\Database\DatabaseConnection
+     */
+    protected $db;
 
-	/**
-	 * The main method of the PlugIn
-	 *
-	 * @param string $content The PlugIn content
-	 * @param array $conf The PlugIn configuration
-	 * @return string The content that is displayed on the website
-	 */
-	public function main($content, $conf) {
-		$this->conf = $conf;
+    /**
+     * The main method of the PlugIn
+     *
+     * @param string $content The PlugIn content
+     * @param array $conf The PlugIn configuration
+     * @return string The content that is displayed on the website
+     */
+    public function main($content, $conf)
+    {
+        $this->conf = $conf;
 
-		$this->pageRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Frontend\Page\PageRepository::class);
-		$this->db = $GLOBALS['TYPO3_DB'];
+        $this->db = $GLOBALS['TYPO3_DB'];
 
-		$this->pi_setPiVarDefaults();
-		$content .= $this->displayTree($this->getPageTreeIds($this->cObj->data['pages']));
-		return $this->pi_wrapInBaseClass($content);
-	}
+        $this->pageRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Frontend\Page\PageRepository::class);
 
-	/**
-	 * Get the IDds of a pagetree as Array
-	 *
-	 * @param int $startId
-	 * @return array
-	 */
-	protected function getPageTreeIds($startId) {
+        $this->pi_setPiVarDefaults();
 
-		$tree = array();
+        $content = $this->displayTree($this->getPageTreeIds($this->cObj->data['pages']));
 
-		$res1 = $this->db->exec_SELECTquery(
-				'uid',
-				'pages',
-				'pid = ' . $startId . ' AND deleted = 0 AND hidden = 0 AND pid > 0 AND t3ver_wsid = 0',
-				'',
-				'sorting ASC',
-				'');
-		while ($row1 = $this->db->sql_fetch_assoc($res1)) {
-			$children = $this->getPageTreeIds($row1['uid']);
-			if ($children) {
-				$tree[$row1['uid']]['children'] = $this->getPageTreeIds($row1['uid']);
-			} else {
-				$tree[$row1['uid']]['children'] = 0;
-			}
-		}
-		return $tree;
-	}
+        return $this->pi_wrapInBaseClass($content);
+    }
 
-	/**
-	 * Displays the tree for the sitemap
-	 *
-	 * @param array $tree
-	 * @return string
-	 */
-	protected function displayTree($tree) {
-		$displayTree = '<ul>';
-		foreach ($tree as $uid => $value) {
+    /**
+     * Displays the tree for the sitemap
+     *
+     * @param array $tree
+     * @return string
+     */
+    protected function displayTree($tree)
+    {
+        $displayTree = '<ul>';
+        foreach ($tree as $uid => $value) {
 
-			$page = $this->pageRepository->getPage($uid);
+            $page = $this->pageRepository->getPage($uid);
 
-			if ($GLOBALS['TSFE']->sys_language_uid !== 0) {
-				$page = $this->pageRepository->getPageOverlay($page, $GLOBALS['TSFE']->sys_language_uid);
-			}
+            if ($GLOBALS['TSFE']->sys_language_uid !== 0) {
+                $page = $this->pageRepository->getPageOverlay($page, $GLOBALS['TSFE']->sys_language_uid);
+            }
 
-			$title = $page['title'];
-			$displayTree .= '<li>';
-			// url title hacks
-			$saveATagParams = $GLOBALS['TSFE']->ATagParams;
-			$GLOBALS['TSFE']->ATagParams = 'title="' . $title . '"';
-			$displayTree .= $this->pi_LinkToPage($title, $uid, '', '');
-			$GLOBALS['TSFE']->ATagParams = $saveATagParams;
+            $title = $page['title'];
+            $displayTree .= '<li>';
+            // url title hacks
+            $saveATagParams = $GLOBALS['TSFE']->ATagParams;
+            $GLOBALS['TSFE']->ATagParams = 'title="' . $title . '"';
+            $displayTree .= $this->pi_LinkToPage($title, $uid, '');
+            $GLOBALS['TSFE']->ATagParams = $saveATagParams;
 
-			if ($value['children']) {
-				$displayTree .= $this->displayTree($value['children']);
-			}
-			$displayTree .= '</li>';
-		}
-		$displayTree .= '</ul>';
-		return $displayTree;
-	}
+            if ($value['children']) {
+                $displayTree .= $this->displayTree($value['children']);
+            }
+            $displayTree .= '</li>';
+        }
+        $displayTree .= '</ul>';
+
+        return $displayTree;
+    }
+
+    /**
+     * Get the IDds of a pagetree as Array
+     *
+     * @param int $startId
+     * @return array
+     */
+    protected function getPageTreeIds($startId)
+    {
+
+        $tree = [];
+
+        $res1 = $this->db->exec_SELECTquery(
+            'uid',
+            'pages',
+            'pid = ' . $startId . ' AND deleted = 0 AND hidden = 0 AND nav_hide = 0 AND pid > 0 AND t3ver_wsid = 0',
+            '',
+            'sorting ASC',
+            '');
+        while ($row1 = $this->db->sql_fetch_assoc($res1)) {
+            $children = $this->getPageTreeIds($row1['uid']);
+
+            if ($children) {
+                $tree[$row1['uid']]['children'] = $this->getPageTreeIds($row1['uid']);
+            } else {
+                $tree[$row1['uid']]['children'] = 0;
+            }
+        }
+
+        return $tree;
+    }
 
 }
 
 if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/' . $extKey . '/pi1/class.tx_nkwsitemap_pi1.php']) {
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/' . $extKey . '/pi1/class.tx_nkwsitemap_pi1.php']);
+    include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/' . $extKey . '/pi1/class.tx_nkwsitemap_pi1.php']);
 }
