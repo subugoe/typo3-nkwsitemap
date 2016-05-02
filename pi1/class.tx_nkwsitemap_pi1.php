@@ -40,9 +40,12 @@ class tx_nkwsitemap_pi1 extends \TYPO3\CMS\Frontend\Plugin\AbstractPlugin
     protected $pageRepository;
 
     /**
-     * @var \TYPO3\CMS\Core\Database\DatabaseConnection
+     * @return \TYPO3\CMS\Core\Database\DatabaseConnection
      */
-    protected $db;
+    protected function getDatabaseConnection()
+    {
+        return $GLOBALS['TYPO3_DB'];
+    }
 
     /**
      * The main method of the PlugIn
@@ -54,9 +57,7 @@ class tx_nkwsitemap_pi1 extends \TYPO3\CMS\Frontend\Plugin\AbstractPlugin
     public function main($content, $conf)
     {
         $this->conf = $conf;
-
-        $this->db = $GLOBALS['TYPO3_DB'];
-
+        
         $this->pageRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Frontend\Page\PageRepository::class);
 
         $this->pi_setPiVarDefaults();
@@ -112,14 +113,14 @@ class tx_nkwsitemap_pi1 extends \TYPO3\CMS\Frontend\Plugin\AbstractPlugin
 
         $tree = [];
 
-        $res1 = $this->db->exec_SELECTquery(
+        $res1 = $this->getDatabaseConnection->exec_SELECTquery(
             'uid',
             'pages',
             'pid = ' . $startId . ' AND deleted = 0 AND hidden = 0 AND nav_hide = 0 AND pid > 0 AND t3ver_wsid = 0',
             '',
             'sorting ASC',
             '');
-        while ($row1 = $this->db->sql_fetch_assoc($res1)) {
+        while ($row1 = $this->getDatabaseConnection()->sql_fetch_assoc($res1)) {
             $children = $this->getPageTreeIds($row1['uid']);
 
             if ($children) {
